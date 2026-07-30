@@ -150,7 +150,34 @@ if not api_key:
     st.info("👋 Bienvenue sur l'assistant CamTrans ! Veuillez renseigner votre clé API Groq dans la barre latérale pour commencer.", icon="🔑")
     st.stop()
 
-# 7. Affichage des messages existants
+# 7. Message d'accueil décrivant le domaine de CamTrans
+if not st.session_state.messages:
+    st.markdown("""
+    <div style="
+        background: linear-gradient(135deg, rgba(255, 75, 75, 0.08), rgba(74, 144, 226, 0.08));
+        border: 1px solid rgba(255, 140, 66, 0.2);
+        border-radius: 16px;
+        padding: 24px 28px;
+        margin-bottom: 20px;
+        animation: fadeIn 0.6s ease-in-out;
+    ">
+        <h3 style="margin-top: 0; color: #FF8C42;">👋 Bienvenue sur l'Assistant CamTrans !</h3>
+        <p style="color: #ccc; font-size: 1.05rem; margin-bottom: 12px;">
+            Nous sommes spécialisés dans la <strong style="color: #FF4B4B;">logistique et le transport de marchandises au Cameroun</strong>. 
+            Notre assistant IA est là pour vous accompagner dans tous vos besoins de livraison et d'expédition.
+        </p>
+        <p style="color: #aaa; margin-bottom: 8px;">📦 <strong>Ce que je peux faire pour vous :</strong></p>
+        <ul style="color: #bbb; list-style: none; padding-left: 0; line-height: 2;">
+            <li>🚛 <strong>Estimation de tarifs</strong> — Douala → Yaoundé, Bafoussam, Garoua, et toutes les villes du Cameroun</li>
+            <li>🗺️ <strong>Optimisation de trajets</strong> — Planifiez vos tournées de livraison efficacement</li>
+            <li>📋 <strong>Conseils logistiques</strong> — Emballage, réglementation, colis fragiles, douanes</li>
+            <li>💡 <strong>Aide sur CamTrans</strong> — Fonctionnement de la plateforme et de nos services</li>
+        </ul>
+        <p style="color: #888; font-size: 0.9rem; margin-bottom: 0;">💬 Posez votre question ci-dessous pour commencer !</p>
+    </div>
+    """, unsafe_allow_html=True)
+
+# 8. Affichage des messages existants
 for message in st.session_state.messages:
     avatar = "👤" if message["role"] == "user" else "🚚"
     with st.chat_message(message["role"], avatar=avatar):
