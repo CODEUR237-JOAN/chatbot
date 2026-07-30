@@ -88,11 +88,15 @@ st.markdown("""
 st.markdown('<h1 class="hero-title">🚚 Assistant CamTrans</h1>', unsafe_allow_html=True)
 st.markdown('<p class="hero-caption">L\'intelligence artificielle dédiée à vos expéditions et au transport de marchandises au Cameroun.</p>', unsafe_allow_html=True)
 
-# 4. Gestion des secrets et de la barre latérale
-secret_api_key = st.secrets.get("GEMINI_API_KEY") if "GEMINI_API_KEY" in st.secrets else None
+# 4. Initialisation des variables de session
+if "messages" not in st.session_state:
+    st.session_state.messages = []
 
 if "suggested_prompt" not in st.session_state:
     st.session_state.suggested_prompt = None
+
+# 5. Gestion des secrets et de la barre latérale
+secret_api_key = st.secrets.get("GEMINI_API_KEY") if "GEMINI_API_KEY" in st.secrets else None
 
 with st.sidebar:
     st.header("⚙️ Configuration")
@@ -119,24 +123,22 @@ with st.sidebar:
     for ex in examples:
         if st.button(f"📌 {ex}", key=f"btn_{ex}"):
             st.session_state.suggested_prompt = ex
+            st.rerun()
 
     st.divider()
 
     # Bouton de réinitialisation du Chat
     if st.button("🗑️ Effacer la conversation", type="secondary"):
         st.session_state.messages = []
+        st.session_state.suggested_prompt = None
         st.rerun()
 
-# 5. Blocage si pas de clé API
+# 6. Blocage si pas de clé API
 if not api_key:
     st.info("👋 Bienvenue sur l'assistant CamTrans ! Veuillez renseigner votre clé API Gemini dans la barre latérale pour commencer.", icon="🔑")
     st.stop()
 
-# 6. Initialisation de l'historique
-if "messages" not in st.session_state:
-    st.session_state.messages = []
-
-# Instruction Système de l'Assistant
+# System Instruction
 SYSTEM_INSTRUCTION = """
 Tu es l'assistant IA officiel de CamTrans, une plateforme de logistique et de transport de marchandises au Cameroun. 
 Ton rôle est d'aider les clients et les transporteurs :
@@ -158,14 +160,17 @@ for message in st.session_state.messages:
 prompt_input = st.chat_input("Posez votre question sur CamTrans, vos expéditions ou la logistique...")
 
 prompt = st.session_state.suggested_prompt or prompt_input
-if st.session_state.suggested_prompt:
-    st.session_state.suggested_prompt = None
 
 if prompt:
+    # Réinitialisation du prompt suggéré après capture
+    st.session_state.suggested_prompt = None
+
+    # Sauvegarde et affichage du message utilisateur
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user", avatar="👤"):
         st.markdown(prompt)
 
+    # Génération et streaming de la réponse de l'assistant
     with st.chat_message("assistant", avatar="🚚"):
         response_placeholder = st.empty()
         full_response = ""
@@ -173,22 +178,19 @@ if prompt:
         try:
             client = genai.Client(api_key=api_key)
             
-            formatted_contents = []
-            for m in st.session_state.messages:
-                role = "user" if m["role"] == "user" else "model"
-                formatted_contents.append(
-                    types.Content(
-                        role=role,
-                        parts=[types.Part.from_text(text=m["content"])]
-                    )
+            formatted_contents = [
+                types.Content(
+                    role="user" if m["role"] == "user" else "model",
+                    parts=[types.Part.from_text(text=m["content"])]
                 )
+                for m in st.session_state.messages
+            ]
 
             config = types.GenerateContentConfig(
                 system_instruction=SYSTEM_INSTRUCTION,
                 temperature=0.3
             )
 
-            # Utilisation du modèle gemini-2.0-flash compatible avec le SDK google-genai
             response_stream = client.models.generate_content_stream(
                 model="gemini-2.0-flash",
                 contents=formatted_contents,
