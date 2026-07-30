@@ -98,7 +98,7 @@ if prompt := st.chat_input("Posez votre question sur CamTrans, vos expéditions 
 
             # Utilisation du modèle gemini-2.5-flash
             response_stream = client.models.generate_content_stream(
-                model="gemini-2.5-flash",
+                model="gemini-1.5-flash",
                 contents=formatted_contents,
                 config=config
             )
