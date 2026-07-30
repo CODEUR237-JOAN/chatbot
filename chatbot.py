@@ -206,4 +206,13 @@ if prompt:
             st.session_state.messages.append({"role": "assistant", "content": full_response})
 
         except Exception as e:
-            st.error(f"Une erreur est survenue lors de la communication avec l'IA : {e}")
+            error_msg = str(e)
+            
+            # Retirer le dernier message utilisateur de l'historique en cas d'échec de l'IA
+            if st.session_state.messages and st.session_state.messages[-1]["role"] == "user":
+                st.session_state.messages.pop()
+                
+            if "429" in error_msg or "RESOURCE_EXHAUSTED" in error_msg:
+                st.warning("⚠️ Limite de requêtes atteinte (Quota gratuit). L'IA a besoin de faire une petite pause. Veuillez patienter environ 1 minute avant de poser une nouvelle question.")
+            else:
+                st.error(f"Une erreur est survenue lors de la communication avec l'IA : {e}")
