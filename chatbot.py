@@ -1,4 +1,5 @@
 import streamlit as st
+import time
 from google import genai
 from google.genai import types
 
@@ -191,19 +192,37 @@ if prompt:
                 temperature=0.3
             )
 
-            response_stream = client.models.generate_content_stream(
-                model="gemini-2.0-flash",
-                contents=formatted_contents,
-                config=config
-            )
-            
-            for chunk in response_stream:
-                if chunk.text:
-                    full_response += chunk.text
-                    response_placeholder.markdown(full_response + "▌")
-            
-            response_placeholder.markdown(full_response)
-            st.session_state.messages.append({"role": "assistant", "content": full_response})
+            # Retry logic pour gérer les erreurs de quota temporaires
+            max_retries = 3
+            retry_delay = 15  # secondes
+
+            for attempt in range(max_retries):
+                try:
+                    response_stream = client.models.generate_content_stream(
+                        model="gemini-2.0-flash",
+                        contents=formatted_contents,
+                        config=config
+                    )
+                    
+                    for chunk in response_stream:
+                        if chunk.text:
+                            full_response += chunk.text
+                            response_placeholder.markdown(full_response + "▌")
+                    
+                    response_placeholder.markdown(full_response)
+                    st.session_state.messages.append({"role": "assistant", "content": full_response})
+                    break  # Succès, on sort de la boucle
+
+                except Exception as retry_error:
+                    error_str = str(retry_error)
+                    if ("429" in error_str or "RESOURCE_EXHAUSTED" in error_str) and attempt < max_retries - 1:
+                        wait_time = retry_delay * (attempt + 1)
+                        response_placeholder.markdown(f"⏳ *Quota temporairement atteint. Nouvelle tentative dans {wait_time}s... (essai {attempt + 2}/{max_retries})*")
+                        time.sleep(wait_time)
+                        full_response = ""  # Réinitialiser la réponse pour le retry
+                        continue
+                    else:
+                        raise retry_error  # Propager l'erreur vers le bloc except principal
 
         except Exception as e:
             error_msg = str(e)
@@ -213,6 +232,10 @@ if prompt:
                 st.session_state.messages.pop()
                 
             if "429" in error_msg or "RESOURCE_EXHAUSTED" in error_msg:
-                st.warning("⚠️ Limite de requêtes atteinte (Quota gratuit). L'IA a besoin de faire une petite pause. Veuillez patienter environ 1 minute avant de poser une nouvelle question.")
+                st.warning("⚠️ Limite de requêtes atteinte après plusieurs tentatives. Veuillez patienter **2 à 3 minutes** puis réessayez. Le quota gratuit Gemini se réinitialise automatiquement.")
+            elif "ConnectError" in error_msg or "getaddrinfo" in error_msg:
+                st.error("🌐 Erreur de connexion réseau. Vérifiez votre connexion internet et réessayez.")
+            elif "API_KEY" in error_msg.upper() or "INVALID" in error_msg.upper() or "401" in error_msg:
+                st.error("🔑 Clé API invalide. Veuillez vérifier votre clé API Gemini dans la barre latérale.")
             else:
-                st.error(f"Une erreur est survenue lors de la communication avec l'IA : {e}")
+                st.error(f"❌ Une erreur est survenue : {e}")
