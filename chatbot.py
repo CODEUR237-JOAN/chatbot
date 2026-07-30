@@ -91,7 +91,6 @@ st.markdown('<p class="hero-caption">L\'intelligence artificielle dédiée à vo
 # 4. Gestion des secrets et de la barre latérale
 secret_api_key = st.secrets.get("GEMINI_API_KEY") if "GEMINI_API_KEY" in st.secrets else None
 
-# Initialisation de la clé suggérée si l'utilisateur clique sur un exemple
 if "suggested_prompt" not in st.session_state:
     st.session_state.suggested_prompt = None
 
@@ -139,7 +138,7 @@ if "messages" not in st.session_state:
 
 # Instruction Système de l'Assistant
 SYSTEM_INSTRUCTION = """
-Tu es l'assistant IA officiel de CamTrans, une plateforme de logistique et de transport de marchandises au Cameroun et en Afrique Centrale. 
+Tu es l'assistant IA officiel de CamTrans, une plateforme de logistique et de transport de marchandises au Cameroun. 
 Ton rôle est d'aider les clients et les transporteurs :
 - Estimer des tarifs de livraison (ex: Douala - Yaoundé, Bafoussam, Garoua, etc.)
 - Donner des conseils sur la logistique, l'emballage et l'optimisation des trajets
@@ -158,18 +157,15 @@ for message in st.session_state.messages:
 # 8. Saisie utilisateur (Champ texte ou clic sur un exemple)
 prompt_input = st.chat_input("Posez votre question sur CamTrans, vos expéditions ou la logistique...")
 
-# Récupération de la question (priorité au clic sur exemple)
 prompt = st.session_state.suggested_prompt or prompt_input
 if st.session_state.suggested_prompt:
-    st.session_state.suggested_prompt = None  # Réinitialiser le clic
+    st.session_state.suggested_prompt = None
 
 if prompt:
-    # Sauvegarde et affichage du message utilisateur
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user", avatar="👤"):
         st.markdown(prompt)
 
-    # Réponse de l'IA
     with st.chat_message("assistant", avatar="🚚"):
         response_placeholder = st.empty()
         full_response = ""
@@ -177,7 +173,6 @@ if prompt:
         try:
             client = genai.Client(api_key=api_key)
             
-            # Formatage de l'historique pour le SDK google-genai
             formatted_contents = []
             for m in st.session_state.messages:
                 role = "user" if m["role"] == "user" else "model"
@@ -193,9 +188,9 @@ if prompt:
                 temperature=0.3
             )
 
-            # Utilisation du modèle gemini-1.5-flash
+            # Utilisation du modèle gemini-2.0-flash compatible avec le SDK google-genai
             response_stream = client.models.generate_content_stream(
-                model="gemini-1.5-flash",
+                model="gemini-2.0-flash",
                 contents=formatted_contents,
                 config=config
             )
