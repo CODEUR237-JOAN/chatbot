@@ -86,7 +86,7 @@ st.markdown("""
 
 # 3. En-tête stylisé
 st.markdown('<h1 class="hero-title">🚚 Assistant CamTrans</h1>', unsafe_allow_html=True)
-st.markdown('<p class="hero-caption">L\'intelligence artificielle dédiée à vos expéditions et au transport de marchandises au Cameroun & Afrique Centrale.</p>', unsafe_allow_html=True)
+st.markdown('<p class="hero-caption">L\'intelligence artificielle dédiée à vos expéditions et au transport de marchandises au Cameroun.</p>', unsafe_allow_html=True)
 
 # 4. Gestion des secrets et de la barre latérale
 secret_api_key = st.secrets.get("GEMINI_API_KEY") if "GEMINI_API_KEY" in st.secrets else None
