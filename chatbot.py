@@ -14,11 +14,18 @@ st.set_page_config(
 st.title("✨ Assistant CamTrans")
 st.caption("L'intelligence artificielle dédiée à vos expéditions et au transport de marchandises.")
 
-# Barre latérale pour la clé API et les options
+# Gestion des secrets et du champ de saisie latéral
+secret_api_key = st.secrets.get("GEMINI_API_KEY") if "GEMINI_API_KEY" in st.secrets else None
+
 with st.sidebar:
     st.header("⚙️ Configuration")
-    api_key = st.text_input("Clé API Google Gemini :", type="password")
-    st.markdown("[Obtenir une clé API Gemini](https://aistudio.google.com/app/api-keys)")
+    
+    if secret_api_key:
+        st.success("Clé API chargée depuis les Secrets !", icon="🔒")
+        api_key = secret_api_key
+    else:
+        api_key = st.text_input("Clé API Google Gemini :", type="password")
+        st.markdown("[Obtenir une clé API Gemini](https://aistudio.google.com/app/api-keys)")
     
     st.divider()
     st.subheader("💡 Exemples de questions")
@@ -27,7 +34,7 @@ with st.sidebar:
     st.write("• *Quelles sont les règles pour le transport de marchandises fragiles ?*")
     st.write("• *Comment fonctionne l'application CamTrans ?*")
 
-# Vérification de la clé API
+# Vérification de la présence d'une clé API (soit depuis Secrets, soit via le text_input)
 if not api_key:
     st.info("👋 Bienvenue sur CamTrans ! Veuillez saisir votre clé API Gemini dans le panneau de gauche pour démarrer.", icon="🔑")
     st.stop()
@@ -72,14 +79,16 @@ if prompt := st.chat_input("Posez votre question sur CamTrans, vos expéditions 
         try:
             client = genai.Client(api_key=api_key)
             
-            # Préparation de l'historique pour Gemini
+            # Préparation de l'historique conforme au SDK google-genai
             formatted_contents = []
             for m in st.session_state.messages:
                 role = "user" if m["role"] == "user" else "model"
-                formatted_contents.append({
-                    "role": role,
-                    "parts": [{"text": m["content"]}]
-                })
+                formatted_contents.append(
+                    types.Content(
+                        role=role,
+                        parts=[types.Part.from_text(text=m["content"])]
+                    )
+                )
 
             # Configuration avec l'instruction système
             config = types.GenerateContentConfig(
@@ -87,7 +96,7 @@ if prompt := st.chat_input("Posez votre question sur CamTrans, vos expéditions 
                 temperature=0.3
             )
 
-            # CORRECTION DU MODÈLE : gemini-2.5-flash au lieu de gemini-2.0-flash
+            # Utilisation du modèle gemini-2.5-flash
             response_stream = client.models.generate_content_stream(
                 model="gemini-2.5-flash",
                 contents=formatted_contents,
